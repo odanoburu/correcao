@@ -1,0 +1,128 @@
+#+TITLE: Correção Monetária
+
+essa biblioteca busca tornar cálculos de correção monetária
+fáceis. suas entradas são arquivos csv.
+
+no Brasil, é comum que cálculos de correção monetária sejam
+necessários para o cumprimento de decisões judiciais. como cada
+decisão estabelece os seus critérios, nem sempre é possível usar uma
+das diversas calculadoras online existentes, que geralmente possuem
+apenas alguns índices disponíveis.
+
+o fato de todos os dados serem fornecidos pelo usuário é o que permite
+a flexibilidade na forma de cálculo e a confiança no resultado -- ao
+contrário das calculadoras online, você sabe a fonte dos dados, e o
+código aberto pode ser inspecionado.
+
+* arquivos de entrada
+  essa biblioteca corrige valores segundo qualquer regra razoável
+  usando apenas =(n + 2)= arquivos de entrada, o arquivo-mestre, o
+  arquivo com os valores a serem atualizados, e =n= arquivos com os
+  valores dos índices a serem usados na correção monetária.
+
+** o arquivo-mestre
+   o arquivo-mestre é um arquivo csv de uma coluna só, em que se
+   indica os nomes dos arquivos com os índices de correção, e em que
+   ordem eles devem ser aplicados.
+
+** arquivos de correção
+   os arquivos de correção são arquivos csv de duas colunas. a
+   primeira é uma data em formato [[https://pt.wikipedia.org/wiki/ISO_8601][ISO 8601]][fn:1], e a segunda é um
+   dado de um de três tipos:
+- variação :: é o multiplicador que corrige um valor (e.g., 1.25)
+- percentual :: é valor em percentagem da correção (e.g. 25% -- mas
+                sem o símbolo =%=)
+- índice :: é o nível de preço do qual são calculados os outros dois
+            tipos de dado. se o nível de preço era 100 e passou a 125,
+            temos uma variação percentual de 25%, e multiplicador de
+            1.25.
+
+a biblioteca aceita os dados em quaisquer um desses formatos, mas o
+formato deve ser especificado na extensão do arquivo. como exemplo,
+apresentamos o mesmo conteúdo nos três formatos:
+#+BEGIN_SRC sh
+$ cat selic.varia
+date,value
+2018-01-01,1.0056
+$ cat selic.perc
+date,value
+2018-01-01,0.56
+$ cat selic.index
+date,value
+2017-12-01,100
+2018-01-01,100.56
+#+END_SRC
+
+como se nota, os arquivos com dados no tipo índice tem sempre uma
+linha a mais.
+
+** formatos
+   o processamento dos arquivos csv é feito pela biblioteca haskell
+   =csv=. existem vários 'dialetos' do formato csv, e possivelmente
+   nem todos são aceitos por essa biblioteca. recomendamos o uso de
+   arquivos no padrão UNIX, i.e., com vírgula como separador e aspas
+   como field quoter.
+   
+   algumas notas sobre os formatos:
+   - sempre deve haver um título para cada tabela, i.e., a primeira
+     linha não deve conter nenhum tipo de dado, pois ela será
+     descartada;
+   - não pode haver linha vazia no final dos arquivos ;
+   - números são sempre sem separadores de milhares, e o separador
+     decimal é ponto (e não a vírgula).
+
+** validação
+   a biblioteca assume e checa se os dados fornecidos são
+   consecutivos, i.e., se não há valores faltantes. assim, se houver
+   dados para fevereiro de 1989 e abril de 1994, deve haver dados para
+   todos os meses entre essas datas.
+
+* instalação
+  instale [[https://www.haskell.org/downloads][haskell]] no seu computador.
+  
+  clone o repositório (ou baixe o arquivo .zip):
+  #+BEGIN_SRC sh
+  cd /path/of/choice/
+  git clone $REPO_URL
+  #+END_SRC
+
+  para instalar a biblioteca, basta fazer:
+  - usando =cabal=:
+    #+BEGIN_SRC sh
+    cabal install
+    #+END_SRC
+  - usando =stack=:
+    #+BEGIN_SRC sh
+    stack setup
+    stack build
+    stack install --system-ghc
+    #+END_SRC
+* uso
+  com os arquivos todos no mesmo diretório, basta fazer:
+#+BEGIN_SRC sh
+  runghc Correcao.hs arquivo-master.csv arquivo-com-valores.csv
+#+END_SRC
+
+  e o resultado será um arquivo csv de uma coluna só, com os valores
+  atualizados segundo os dados fornecidos.
+
+  a tabela com os valores pode ser unida à tabela com o resultado
+  usando o seguinte comando (não esqueca de adicionar um título para a
+  tabela com o resultado):
+#+BEGIN_SRC sh
+  paste -d ',' valores.csv resultado.csv
+#+END_SRC
+
+* licença
+  esse repositório e tudo que está contido nele é licenciado sob uma
+  licença livre e aberta, a LGPL v3. você pode fazer muitas coisas com
+  o código disponibilizado, mas algumas das que você não pode fazer é
+  restringir o acesso a ele ou pedir algum tipo dano/garantia. leia a
+  licença completa no arquivo LICENSE.
+
+* Footnotes
+
+[fn:1] no momento a biblioteca só corrige valores mensalmente, como
+geralmente é o pedido em decisões judiciais, de modo que o valor do
+dia não importa, só o mês e o ano.
+
